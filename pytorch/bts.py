@@ -136,7 +136,6 @@ class local_planar_guidance(nn.Module):
         n2 = plane_eq_expanded[:, 1, :, :]
         n3 = plane_eq_expanded[:, 2, :, :]
         n4 = plane_eq_expanded[:, 3, :, :]
-        
         u = self.u.repeat(plane_eq.size(0), plane_eq.size(2) * int(self.upratio), plane_eq.size(3)).cuda()
         u = (u - (self.upratio - 1) * 0.5) / self.upratio
         
@@ -194,8 +193,8 @@ class bts(nn.Module):
                                               nn.Sigmoid())
 
     def forward(self, features, focal):
-        skip0, skip1, skip2, skip3 = features[0], features[1], features[2], features[3]
-        dense_features = torch.nn.ReLU()(features[4])
+        skip0, skip1, skip2, skip3 = features[1], features[2], features[3], features[4]
+        dense_features = torch.nn.ReLU()(features[5])
         upconv5 = self.upconv5(dense_features) # H/16
         upconv5 = self.bn5(upconv5)
         concat5 = torch.cat([upconv5, skip3], dim=1)
@@ -294,29 +293,20 @@ class encoder(nn.Module):
             self.base_model = models.resnext101_32x8d(pretrained=True)
             self.feat_names = ['relu', 'layer1', 'layer2', 'layer3', 'layer4']
             self.feat_out_channels = [64, 256, 512, 1024, 2048]
-        elif params.encoder == 'mobilenetv2_bts':
-            self.base_model = models.mobilenet_v2(pretrained=True).features
-            self.feat_inds = [2, 4, 7, 11, 19]
-            self.feat_out_channels = [16, 24, 32, 64, 1280]
-            self.feat_names = []
         else:
             print('Not supported encoder: {}'.format(params.encoder))
 
     def forward(self, x):
-        feature = x
-        skip_feat = []
-        i = 1
+        features = [x]
+        skip_feat = [x]
         for k, v in self.base_model._modules.items():
             if 'fc' in k or 'avgpool' in k:
                 continue
-            feature = v(feature)
-            if self.params.encoder == 'mobilenetv2_bts':
-                if i == 2 or i == 4 or i == 7 or i == 11 or i == 19:
-                    skip_feat.append(feature)
-            else:
-                if any(x in k for x in self.feat_names):
-                    skip_feat.append(feature)
-            i = i + 1
+            feature = v(features[-1])
+            features.append(feature)
+            if any(x in k for x in self.feat_names):
+                skip_feat.append(feature)
+        
         return skip_feat
     
 

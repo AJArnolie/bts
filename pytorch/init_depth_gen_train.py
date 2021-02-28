@@ -40,7 +40,7 @@ from tqdm import tqdm
 
 from bts import BtsModel
 from bts_dataloader import *
-from utils.Mirror3D_eval import Mirror3d_eval
+from utils.mirror3d_metrics import Mirror3d_eval
 
 def convert_arg_line_to_args(arg_line):
     for arg in arg_line.split():

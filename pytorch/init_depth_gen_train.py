@@ -471,7 +471,7 @@ def main_worker(gpu, ngpus_per_node, args):
             if global_step and global_step % args.tensorboard_log_freq == 0 and not model_just_loaded:
                 var_sum = [var.sum() for var in model.parameters() if var.requires_grad]
                 var_cnt = len(var_sum)
-                var_sum = np.sum(var_sum)
+                var_sum = np.sum(np.array([ i.cpu().detach().numpy() for i in var_sum ]))
                 examples_per_sec = args.batch_size / duration * args.tensorboard_log_freq
                 duration = 0
                 time_sofar = (time.time() - start_time) / 3600
@@ -492,6 +492,7 @@ def main_worker(gpu, ngpus_per_node, args):
             checkpoint_save_folder = os.path.join(args.log_directory, "checkpoint")
             os.makedirs(checkpoint_save_folder,exist_ok=True)
 
+            # checkpoint_save_freq is for global iteration
             if  args.do_online_eval and global_step and global_step % args.checkpoint_save_freq == 0 and not model_just_loaded:
                 if not args.multiprocessing_distributed or (args.multiprocessing_distributed and args.rank % ngpus_per_node == 0):
                     checkpoint = {'global_step': global_step,

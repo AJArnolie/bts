@@ -23,6 +23,7 @@ from PIL import Image
 import os
 import random
 import json
+import cv2
 
 from distributed_sampler_no_evenly_divisible import *
 
@@ -155,54 +156,18 @@ class DataLoadPreprocess(Dataset):
             focal = float(sample_path.split()[2])
 
         if self.mode == 'train':
-            if self.args.coco_input:
-                image_path = sample_path[0]
-                depth_path = sample_path[1]
-            else:
-                if self.args.dataset == 'kitti' and self.args.use_right is True and random.random() > 0.5:
-                    image_path = os.path.join(self.args.data_path, "./" + sample_path.split()[3])
-                    depth_path = os.path.join(self.args.gt_path, "./" + sample_path.split()[4])
-                else:
-                    image_path = os.path.join(self.args.data_path, "./" + sample_path.split()[0])
-                depth_path = os.path.join(self.args.gt_path, "./" + sample_path.split()[1])
-            if self.args.coco_input:
-                image = Image.open(image_path).resize((self.args.input_width,self.args.input_height), Image.NEAREST)
-                depth_gt = Image.open(depth_path).resize((self.args.input_width,self.args.input_height), Image.NEAREST)
-            else:
-                image = Image.open(image_path)
-                depth_gt = Image.open(depth_path)
+            image_path = sample_path[0]
+            depth_path = sample_path[1]
 
-
-                
-            
-            
-            # if self.args.do_kb_crop is True:
-            #     height = image.height
-            #     width = image.width
-            #     top_margin = int(height - 352)
-            #     left_margin = int((width - 1216) / 2)
-            #     depth_gt = depth_gt.crop((left_margin, top_margin, left_margin + 1216, top_margin + 352))
-            #     image = image.crop((left_margin, top_margin, left_margin + 1216, top_margin + 352))
-            
-            # # To avoid blank boundaries due to pixel registration
-            # if self.args.dataset == 'nyu' and not self.args.coco_input:
-            #     depth_gt = depth_gt.crop((43, 45, 608, 472))
-            #     image = image.crop((43, 45, 608, 472))
-    
-            # if self.args.do_random_rotate is True:
-            #     random_angle = (random.random() - 0.5) * 2 * self.args.degree
-            #     image = self.rotate_image(image, random_angle)
-            #     depth_gt = self.rotate_image(depth_gt, random_angle, flag=Image.NEAREST)
-            
+            image = Image.open(image_path).resize((self.args.input_width,self.args.input_height), Image.NEAREST)
+            depth_gt = cv2.imread(depth_path, cv2.IMREAD_ANYDEPTH)
             image = np.asarray(image, dtype=np.float32) / 255.0
-            depth_gt = np.asarray(depth_gt, dtype=np.float32)
+            depth_gt = np.asarray(cv2.resize(depth_gt, dsize=(self.args.input_width, self.args.input_height), interpolation=cv2.INTER_NEAREST), dtype=np.float32)
             depth_gt = np.expand_dims(depth_gt, axis=2)
-
             depth_gt = depth_gt / self.args.depth_shift
 
-
-            # image, depth_gt = self.random_crop(image, depth_gt, self.args.input_height, self.args.input_width)
             image, depth_gt = self.train_preprocess(image, depth_gt)
+            
             sample = {'image': image, 'depth': depth_gt, 'focal': focal,'image_path':sample_path[0],'gt_depth_path':sample_path[1],'gt_depth_path':sample_path[1]}
         
         else:
@@ -337,13 +302,14 @@ class ToTensor(object):
             return {'image': image, 'focal': focal, 'image_path':sample['image_path'],'gt_depth_path':sample['gt_depth_path']}
 
         depth = sample['depth']
+
         if self.mode == 'train':
             depth = self.to_tensor(depth)
             return {'image': image, 'depth': depth, 'focal': focal, 'image_path':sample['image_path'],'gt_depth_path':sample['gt_depth_path']}
         else:
             has_valid_depth = sample['has_valid_depth']
             return {'image': image, 'depth': depth, 'focal': focal, 'has_valid_depth': has_valid_depth, 'image_path':sample['image_path'],'gt_depth_path':sample['gt_depth_path']}
-    
+
     def to_tensor(self, pic):
         if not (_is_pil_image(pic) or _is_numpy_image(pic)):
             raise TypeError(

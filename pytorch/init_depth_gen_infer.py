@@ -27,7 +27,7 @@ import sys
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
-from utils.mirror3d_metrics import Mirror3d_eval
+from utils.Mirror3D_eval import Mirror3d_eval
 
 import errno
 import matplotlib.pyplot as plt
@@ -62,20 +62,15 @@ def test(params):
     model.eval()
     model.cuda()
 
-    if args.coco_input:
-        train_info_to_eval = []
-        for one_cal_json in args.coco_val.split(","):
-            one_cal_json = one_cal_json.strip()
-            one_images = read_json(one_cal_json)["images"]
-            train_info_to_eval += one_images
-        num_test_samples = len(train_info_to_eval)
-    else:
-        num_test_samples = get_num_lines(args.filenames_file)
+    train_info_to_eval = []
+    for one_cal_json in args.coco_val.split(","):
+        one_cal_json = one_cal_json.strip()
+        one_images = read_json(one_cal_json)["images"]
+        train_info_to_eval += one_images
+    num_test_samples = len(train_info_to_eval)
+
 
     lines = ["None None"] * num_test_samples
-    if not args.coco_input :
-        with open(args.filenames_file) as f:
-            lines = f.readlines()
 
     print('now testing {} files with {}'.format(num_test_samples, args.resume_checkpoint_path))
 
@@ -142,40 +137,26 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Get Setting :D')
 
-    parser.add_argument('--model_name',                type=str,   help='model name', default='bts')
-    #TODO
+    # Data config (mirror3d)
     parser.add_argument('--refined_depth',             action='store_true',  help='using coco input format or not')
-    #TODO
     parser.add_argument('--mesh_depth',             type=bool,  help='using coco input format or not', default=True)
-    # TODO
-    parser.add_argument('--coco_val',                  type=str,   help='coco json path', default='/local-scratch/share_data/mirror3D/nyu/nyu_crop_456_608/coco_input/dt_only_15m3d_noraml/pos_test_normalFormat_15_normal.json')
-    # TODO
-    parser.add_argument('--coco_train',                type=str,   help='coco json path', default='/local-scratch/share_data/mirror3D/nyu/nyu_crop_456_608/coco_input/dt_only_15m3d_noraml/pos_train_normalFormat_15_normal.json')
-    # TODO
-    parser.add_argument('--coco_train_root',           type=str,   help='coco data root', 
-        default="/local-scratch/share_data/mirror3D/nyu/nyu_crop_456_608")
-    # TODO
-    parser.add_argument('--coco_val_root',             type=str,   help='coco data root', 
-        default="/local-scratch/share_data/mirror3D/nyu/nyu_crop_456_608")
-    # TODO
+    parser.add_argument('--depth_shift',               type=int,   help='depth shift to meter', default=4000) 
+
+    # Input config (mirror3d)
+    parser.add_argument('--coco_val',                  type=str,   help='coco json path', default='')
+    parser.add_argument('--coco_train',                type=str,   help='coco json path', default='')
+    parser.add_argument('--coco_train_root',           type=str,   help='coco data root', default="")
+    parser.add_argument('--coco_val_root',             type=str,   help='coco data root', default="")
     parser.add_argument('--coco_focal_len',            type=str,   help='focal length of input data; correspond to INPUT DEPTH!', default="519")
-    # TODO 
-    parser.add_argument('--depth_shift',               type=int,   help='depth shift to meter', default=4000) # 4000 for m3d
-    # TODO if coda boom
-    parser.add_argument('--input_height',              type=int,   help='input height', default=512) # 480
-    # TODO  if coda boom
-    parser.add_argument('--input_width',               type=int,   help='input width',  default=640) # 640
-    parser.add_argument('--coco_input',                            help='using coco input format or not',action='store_true')
-    # TODO
-    parser.add_argument('--batch_size',                type=int,   help='batch size', default=2)
-    # TODO
-    parser.add_argument('--learning_rate',             type=float, help='initial learning rate', default=1e-4)
-    # TODO
-    parser.add_argument('--resume_checkpoint_path',           type=str,   help='path to a checkpoint to load', default='/project/3dlg-hcvc/jiaqit/output/bts/bts_nyu_holeD_rawD_2020-12-27-15-43-03/checkpoint/model-14000')
-    # TODO
-    parser.add_argument('--output_save_folder',       type=str,   help='output_main_folder only use during inference', default='/project/3dlg-hcvc/jiaqit/exp_result')
+    parser.add_argument('--input_height',              type=int,   help='input height', default=480) 
+    parser.add_argument('--input_width',               type=int,   help='input width',  default=640) 
+    
+    # Output config (mirror3d)
+    parser.add_argument('--resume_checkpoint_path',           type=str,   help='path to a checkpoint to load', default='')
+    parser.add_argument('--output_save_folder',       type=str,   help='output_main_folder only use during inference', default='')
 
 
+    parser.add_argument('--model_name',                type=str,   help='model name', default='bts')
     parser.add_argument('--encoder', type=str, help='type of encoder, vgg or desenet121_bts or densenet161_bts',
                         default='densenet161_bts')
     parser.add_argument('--data_path', type=str, help='path to the data', default="../dataset/nyu_depth_v2/official_splits/test/")
@@ -191,7 +172,6 @@ if __name__ == '__main__':
     parser.add_argument('--max_depth_eval',            type=float, help='maximum depth for evaluation', default=10)
     args = parser.parse_args()
 
-    args.coco_input = True # TODO 
     model_dir = os.path.dirname(args.resume_checkpoint_path)
     sys.path.append(model_dir)
     test(args)

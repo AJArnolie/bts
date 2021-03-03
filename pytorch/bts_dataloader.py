@@ -23,7 +23,6 @@ from PIL import Image
 import os
 import random
 import json
-import cv2
 
 from distributed_sampler_no_evenly_divisible import *
 
@@ -76,9 +75,6 @@ class BtsDataLoader(object):
                                    sampler=self.eval_sampler)
         
         elif mode == 'test':
-            # self.testing_samples = DataLoadPreprocess(args, mode, transform=preprocessing_transforms(mode))
-            # self.data = DataLoader(self.testing_samples, 1, shuffle=False, num_workers=1)
-
             self.testing_samples = DataLoadPreprocess(args, mode, transform=preprocessing_transforms(mode))
             self.data = DataLoader(self.testing_samples, 1,
                                    shuffle=False,
@@ -96,51 +92,45 @@ class DataLoadPreprocess(Dataset):
 
 
         if mode != 'train':
-            if args.coco_input:
-                root_paths = args.coco_val_root.split(",")
-                coco_focal_len = args.coco_focal_len.split(",")
-                self.filepaths = []
-                for dataset_index, one_json in enumerate(args.coco_val.split(",")):
-                    one_json = one_json.strip()
-                    input_images = read_json(one_json)["images"]
-                    for one_info in input_images: 
-                        if args.refined_depth:
-                            if args.mesh_depth: # mesh refine
-                                self.filepaths.append([os.path.join(root_paths[dataset_index], one_info["img_path"]), os.path.join(root_paths[dataset_index], one_info["mesh_refined_path"])])
-                            else:  # hole refine
-                                self.filepaths.append([os.path.join(root_paths[dataset_index], one_info["img_path"]), os.path.join(root_paths[dataset_index], one_info["hole_refined_path"])])
-                        else:
-                            if args.mesh_depth: # mesh raw
-                                self.filepaths.append([os.path.join(root_paths[dataset_index], one_info["img_path"]), os.path.join(root_paths[dataset_index], one_info["mesh_raw_path"])])
-                            else:# mesh raw hole raw
-                                self.filepaths.append([os.path.join(root_paths[dataset_index], one_info["img_path"]), os.path.join(root_paths[dataset_index], one_info["hole_raw_path"])])
-                        self.focal_lengths.append(int(coco_focal_len[dataset_index]))
-            else:
-                with open(args.filenames_file_eval, 'r') as f:
-                    self.filepaths = f.readlines()
-        else:
-            if args.coco_input:
-                root_paths = args.coco_train_root.split(",")
-                coco_focal_len = args.coco_focal_len.split(",")
-                self.filepaths = []
-                for dataset_index, one_json in enumerate(args.coco_train.split(",")):
-                    one_json = one_json.strip()
-                    for one_info in read_json(one_json)["images"]:
-                        if args.refined_depth:
-                            if args.mesh_depth: # mesh refine
-                                self.filepaths.append([os.path.join(root_paths[dataset_index], one_info["img_path"]), os.path.join(root_paths[dataset_index], one_info["mesh_refined_path"])])
-                            else:  # hole refine
-                                self.filepaths.append([os.path.join(root_paths[dataset_index], one_info["img_path"]), os.path.join(root_paths[dataset_index], one_info["hole_refined_path"])])
-                        else:
-                            if args.mesh_depth: # mesh raw
-                                self.filepaths.append([os.path.join(root_paths[dataset_index], one_info["img_path"]), os.path.join(root_paths[dataset_index], one_info["mesh_raw_path"])])
-                            else:# mesh raw hole raw
-                                self.filepaths.append([os.path.join(root_paths[dataset_index], one_info["img_path"]), os.path.join(root_paths[dataset_index], one_info["hole_raw_path"])])
+            root_paths = args.coco_val_root.split(",")
+            coco_focal_len = args.coco_focal_len.split(",")
+            self.filepaths = []
+            for dataset_index, one_json in enumerate(args.coco_val.split(",")):
+                one_json = one_json.strip()
+                input_images = read_json(one_json)["images"]
+                for one_info in input_images: 
+                    if args.refined_depth:
+                        if args.mesh_depth: # mesh refine
+                            self.filepaths.append([os.path.join(root_paths[dataset_index], one_info["img_path"]), os.path.join(root_paths[dataset_index], one_info["mesh_refined_path"])])
+                        else:  # hole refine
+                            self.filepaths.append([os.path.join(root_paths[dataset_index], one_info["img_path"]), os.path.join(root_paths[dataset_index], one_info["hole_refined_path"])])
+                    else:
+                        if args.mesh_depth: # mesh raw
+                            self.filepaths.append([os.path.join(root_paths[dataset_index], one_info["img_path"]), os.path.join(root_paths[dataset_index], one_info["mesh_raw_path"])])
+                        else:# mesh raw hole raw
+                            self.filepaths.append([os.path.join(root_paths[dataset_index], one_info["img_path"]), os.path.join(root_paths[dataset_index], one_info["hole_raw_path"])])
+                    self.focal_lengths.append(int(coco_focal_len[dataset_index]))
 
-                        self.focal_lengths.append(int(coco_focal_len[dataset_index]))
-            else:
-                with open(args.filenames_file, 'r') as f:
-                    self.filepaths = f.readlines()
+        else:
+            root_paths = args.coco_train_root.split(",")
+            coco_focal_len = args.coco_focal_len.split(",")
+            self.filepaths = []
+            for dataset_index, one_json in enumerate(args.coco_train.split(",")):
+                one_json = one_json.strip()
+                for one_info in read_json(one_json)["images"]:
+                    if args.refined_depth:
+                        if args.mesh_depth: # mesh refine
+                            self.filepaths.append([os.path.join(root_paths[dataset_index], one_info["img_path"]), os.path.join(root_paths[dataset_index], one_info["mesh_refined_path"])])
+                        else:  # hole refine
+                            self.filepaths.append([os.path.join(root_paths[dataset_index], one_info["img_path"]), os.path.join(root_paths[dataset_index], one_info["hole_refined_path"])])
+                    else:
+                        if args.mesh_depth: # mesh raw
+                            self.filepaths.append([os.path.join(root_paths[dataset_index], one_info["img_path"]), os.path.join(root_paths[dataset_index], one_info["mesh_raw_path"])])
+                        else:# mesh raw hole raw
+                            self.filepaths.append([os.path.join(root_paths[dataset_index], one_info["img_path"]), os.path.join(root_paths[dataset_index], one_info["hole_raw_path"])])
+
+                    self.focal_lengths.append(int(coco_focal_len[dataset_index]))
+
     
         self.mode = mode
         self.transform = transform
@@ -150,12 +140,11 @@ class DataLoadPreprocess(Dataset):
     
     def __getitem__(self, idx):
         sample_path = self.filepaths[idx]
-        if self.args.coco_input:
-            focal = self.focal_lengths[idx]
-        else:
-            focal = float(sample_path.split()[2])
+
+        focal = self.focal_lengths[idx]
 
         if self.mode == 'train':
+
             image_path = sample_path[0]
             depth_path = sample_path[1]
 
@@ -171,40 +160,23 @@ class DataLoadPreprocess(Dataset):
             sample = {'image': image, 'depth': depth_gt, 'focal': focal,'image_path':sample_path[0],'gt_depth_path':sample_path[1],'gt_depth_path':sample_path[1]}
         
         else:
-            if not self.args.coco_input:
-                if self.mode == 'online_eval':
-                    data_path = self.args.data_path_eval
-                else:
-                    data_path = self.args.data_path
 
-            if self.args.coco_input:
-                if sample_path[0].find("distorted") > 0:
-                    image_path = sample_path[0]
-                else:
-                    image_path = sample_path[0]
+            if sample_path[0].find("distorted") > 0:
+                image_path = sample_path[0]
             else:
-                image_path = os.path.join(data_path, "./" + sample_path.split()[0])
+                image_path = sample_path[0]
 
-            if self.args.coco_input:
-                image = np.asarray(Image.open(image_path).resize((self.args.input_width,self.args.input_height)), dtype=np.float32) / 255.0 
-            else:
-                image = np.asarray(Image.open(image_path), dtype=np.float32) / 255.0
+
+            image = np.asarray(Image.open(image_path).resize((self.args.input_width,self.args.input_height)), dtype=np.float32) / 255.0 
 
             if self.mode == 'online_eval':
-                if self.args.coco_input:
-                    if sample_path[1].find("distorted") > 0:
-                        depth_path = sample_path[1]
-                    else:
-                        depth_path = sample_path[1]
+                if sample_path[1].find("distorted") > 0:
+                    depth_path = sample_path[1]
                 else:
-                    gt_path = self.args.gt_path_eval
-                    depth_path = os.path.join(gt_path, "./" + sample_path.split()[1])
+                    depth_path = sample_path[1]
                 has_valid_depth = False
                 try:
-                    if self.args.coco_input:
-                        depth_gt = Image.open(depth_path).resize((self.args.input_width,self.args.input_height), Image.NEAREST)
-                    else:
-                        depth_gt = Image.open(depth_path)
+                    depth_gt = Image.open(depth_path).resize((self.args.input_width,self.args.input_height), Image.NEAREST)
                     has_valid_depth = True
                 except IOError:
                     depth_gt = False
@@ -302,14 +274,13 @@ class ToTensor(object):
             return {'image': image, 'focal': focal, 'image_path':sample['image_path'],'gt_depth_path':sample['gt_depth_path']}
 
         depth = sample['depth']
-
         if self.mode == 'train':
             depth = self.to_tensor(depth)
             return {'image': image, 'depth': depth, 'focal': focal, 'image_path':sample['image_path'],'gt_depth_path':sample['gt_depth_path']}
         else:
             has_valid_depth = sample['has_valid_depth']
             return {'image': image, 'depth': depth, 'focal': focal, 'has_valid_depth': has_valid_depth, 'image_path':sample['image_path'],'gt_depth_path':sample['gt_depth_path']}
-
+    
     def to_tensor(self, pic):
         if not (_is_pil_image(pic) or _is_numpy_image(pic)):
             raise TypeError(

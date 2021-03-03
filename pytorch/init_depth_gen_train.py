@@ -40,7 +40,7 @@ from tqdm import tqdm
 
 from bts import BtsModel
 from bts_dataloader import *
-from utils.mirror3d_metrics import Mirror3d_eval
+from utils.Mirror3D_eval import Mirror3d_eval
 
 def convert_arg_line_to_args(arg_line):
     for arg in arg_line.split():
@@ -53,48 +53,31 @@ parser = argparse.ArgumentParser(description='BTS PyTorch implementation.')
 parser.convert_arg_line_to_args = convert_arg_line_to_args
 
 parser.add_argument('--model_name',                type=str,   help='model name', default='bts')
-#TODO
+
+# Input config (mirror3d)
 parser.add_argument('--refined_depth',             action='store_true',  help='using coco input format or not')
-#TODO
 parser.add_argument('--mesh_depth',                action='store_true',  help='using coco input format or not')
-# TODO
-parser.add_argument('--coco_val',                  type=str,   help='coco json path', default='/project/3dlg-hcvc/mirrors/www/Mirror3D_final/nyu/with_mirror/precise/network_input_json/train_10_normal_mirror.json')
-# TODO
-parser.add_argument('--coco_train',                type=str,   help='coco json path', default='/project/3dlg-hcvc/mirrors/www/Mirror3D_final/nyu/with_mirror/precise/network_input_json/test_10_normal_mirror.json')
-# TODO
-parser.add_argument('--coco_train_root',           type=str,   help='coco data root', 
-    default="/project/3dlg-hcvc/mirrors/www/Mirror3D_final/nyu/with_mirror/precise")
-# TODO
-parser.add_argument('--coco_val_root',             type=str,   help='coco data root', 
-    default="/project/3dlg-hcvc/mirrors/www/Mirror3D_final/nyu/with_mirror/precise")
-# TODO
-parser.add_argument('--coco_focal_len',            type=str,   help='focal length of input data; correspond to INPUT DEPTH!', default="310")
-# TODO 
-parser.add_argument('--depth_shift',               type=int,   help='nyu : 1000, m3d : 4000', default=1000) # 4000 for m3d
-# TODO if coda boom
-parser.add_argument('--input_height',              type=int,   help='input height', default=256) # 480
-# TODO  if coda boom
-parser.add_argument('--input_width',               type=int,   help='input width',  default=320) # 640
-# TODO
+parser.add_argument('--coco_val',                  type=str,   help='coco json path', default='')
+parser.add_argument('--coco_train',                type=str,   help='coco json path', default='')
+parser.add_argument('--coco_train_root',           type=str,   help='coco data root', default="")
+parser.add_argument('--coco_val_root',             type=str,   help='coco data root', default="")
+
+# Data information config (mirror3d)
+parser.add_argument('--coco_focal_len',            type=str,   help='focal length of input data; correspond to INPUT DEPTH!', default="519") 
+parser.add_argument('--depth_shift',               type=int,   help='nyu : 1000, m3d : 4000', default=1000) if coda boom
+parser.add_argument('--input_height',              type=int,   help='input height', default=480)   if coda boom
+parser.add_argument('--input_width',               type=int,   help='input width',  default=640) 
+
+# Network config (mirror3d)
 parser.add_argument('--batch_size',                type=int,   help='batch size', default=2)
-# TODO
+parser.add_argument('--num_epochs',                type=int,   help='number of epochs', default=100)
 parser.add_argument('--learning_rate',             type=float, help='initial learning rate', default=1e-4)
-# TODO
 parser.add_argument('--resume_checkpoint_path',           type=str,   help='path to a checkpoint to load', default='')
-# TODO
-parser.add_argument('--checkpoint_save_freq',                 type=int,   help='Checkpoint saving frequency in global steps /iteration; nyu 5000; m3d 10000', default=500)
-# TODO
-# Log and save
+
+# Log and save (mirror3d)
 parser.add_argument('--log_directory',             type=str,   help='training output folder', default='/project/3dlg-hcvc/jiaqit/output')
-# TODO
-parser.add_argument('--num_epochs',                type=int,   help='number of epochs', default=1)
+parser.add_argument('--checkpoint_save_freq',                 type=int,   help='Checkpoint saving frequency in global steps /iteration; nyu 5000; m3d 10000', default=500)
 
-
-parser.add_argument('--coco_input',                type=bool,  help='using coco input format or not', default=True)
-parser.add_argument('--mode',                      type=str,   help='train or test', default='train')
-parser.add_argument('--encoder',                   type=str,   help='type of encoder, desenet121_bts, densenet161_bts, '
-                                                                    'resnet101_bts, resnet50_bts, resnext50_bts or resnext101_bts',
-                                                            default='densenet161_bts')
 # Dataset
 parser.add_argument('--dataset',                   type=str,   help='dataset to train on, kitti or nyu', default='')
 parser.add_argument('--data_path',                 type=str,   help='path to the data', default="../../dataset/nyu_depth_v2/sync/")
@@ -103,7 +86,6 @@ parser.add_argument('--gt_path',                   type=str,   help='path to the
 parser.add_argument('--filenames_file',            type=str,   help='path to the filenames text file', default="../train_test_inputs/nyudepthv2_train_files_with_gt.txt")
 parser.add_argument('--max_depth',                 type=float, help='maximum depth in estimation', default=10)
 parser.add_argument('--tensorboard_log_freq',                  type=int,   help='Logging frequency in global steps', default=100)
-
 
 # Training
 parser.add_argument('--fix_first_conv_blocks',                 help='if set, will fix the first two conv blocks', action='store_true')
@@ -115,6 +97,10 @@ parser.add_argument('--retrain',                               help='if used wit
 parser.add_argument('--adam_eps',                  type=float, help='epsilon in Adam optimizer', default=1e-6)
 parser.add_argument('--end_learning_rate',         type=float, help='end learning rate', default=-1)
 parser.add_argument('--variance_focus',            type=float, help='lambda in paper: [0, 1], higher value more focus on minimizing variance of error', default=0.85)
+parser.add_argument('--mode',                      type=str,   help='train or test', default='train')
+parser.add_argument('--encoder',                   type=str,   help='type of encoder, desenet121_bts, densenet161_bts, '
+                                                                    'resnet101_bts, resnet50_bts, resnext50_bts or resnext101_bts',
+                                                            default='densenet161_bts')
 
 # Preprocessing
 parser.add_argument('--do_random_rotate',          type=bool,  help='if set, will perform random rotation for augmentation', default=False)
@@ -492,7 +478,6 @@ def main_worker(gpu, ngpus_per_node, args):
             checkpoint_save_folder = os.path.join(args.log_directory, "checkpoint")
             os.makedirs(checkpoint_save_folder,exist_ok=True)
 
-            # checkpoint_save_freq is for global iteration
             if  args.do_online_eval and global_step and global_step % args.checkpoint_save_freq == 0 and not model_just_loaded:
                 if not args.multiprocessing_distributed or (args.multiprocessing_distributed and args.rank % ngpus_per_node == 0):
                     checkpoint = {'global_step': global_step,

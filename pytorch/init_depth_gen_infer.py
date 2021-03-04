@@ -137,12 +137,12 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Get Setting :D')
 
-    # Data config (mirror3d)
+    # Input source config
     parser.add_argument('--refined_depth',             action='store_true',  help='using coco input format or not')
     parser.add_argument('--mesh_depth',             type=bool,  help='using coco input format or not', default=True)
     parser.add_argument('--depth_shift',               type=int,   help='depth shift to meter', default=4000) 
 
-    # Input config (mirror3d)
+    # Input format config
     parser.add_argument('--coco_val',                  type=str,   help='coco json path', default='')
     parser.add_argument('--coco_train',                type=str,   help='coco json path', default='')
     parser.add_argument('--coco_train_root',           type=str,   help='coco data root', default="")
@@ -151,9 +151,9 @@ if __name__ == '__main__':
     parser.add_argument('--input_height',              type=int,   help='input height', default=480) 
     parser.add_argument('--input_width',               type=int,   help='input width',  default=640) 
     
-    # Output config (mirror3d)
+    # Output config
     parser.add_argument('--resume_checkpoint_path',           type=str,   help='path to a checkpoint to load', default='')
-    parser.add_argument('--output_save_folder',       type=str,   help='output_main_folder only use during inference', default='')
+    parser.add_argument('--output_save_folder',       type=str,   help='output_main_folder only use during inference', default='infer_output')
 
 
     parser.add_argument('--model_name',                type=str,   help='model name', default='bts')

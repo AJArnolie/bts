@@ -27,7 +27,7 @@ import sys
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
-from utils.Mirror3D_eval import Mirror3d_eval
+from utils.mirror3d_metrics import Mirror3d_eval
 
 import errno
 import matplotlib.pyplot as plt
@@ -35,7 +35,7 @@ from tqdm import tqdm
 
 from bts_dataloader import *
 sys.path.append('./')
-from important_model.bts_nyu_v2_pytorch_densenet161.bts_nyu_v2_pytorch_densenet161 import BtsModel
+from bts import BtsModel
 
 def convert_arg_line_to_args(arg_line):
     for arg in arg_line.split():

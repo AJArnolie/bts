@@ -23,6 +23,7 @@ from PIL import Image
 import os
 import random
 import json
+import cv2
 
 from distributed_sampler_no_evenly_divisible import *
 

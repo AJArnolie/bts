@@ -41,6 +41,7 @@ from tqdm import tqdm
 from bts import BtsModel
 from bts_dataloader import *
 from utils.mirror3d_metrics import Mirror3d_eval
+from utils.general_utlis import check_converge
 
 def convert_arg_line_to_args(arg_line):
     for arg in arg_line.split():
@@ -303,7 +304,9 @@ def online_eval(model, logger, dataloader_eval, gpu, ngpus, args, final_result):
 
     if not args.multiprocessing_distributed or gpu == 0:
         mirror3d_eval.print_mirror3D_score()
-    return
+    mirror_rmse = (mirror3d_eval.m_nm_all_refD/ mirror3d_eval.ref_cnt)[0]
+
+    return mirror_rmse
 
 
 def main_worker(gpu, ngpus_per_node, args):
@@ -417,7 +420,9 @@ def main_worker(gpu, ngpus_per_node, args):
     steps_per_epoch = len(dataloader.data)
     num_total_steps = args.num_epochs * steps_per_epoch
     epoch = global_step // steps_per_epoch
-
+    mirror_rmse_list = []
+    checkpoint_save_list = []
+    is_converge = False
     while epoch < args.num_epochs:
         if args.distributed:
             dataloader.train_sampler.set_epoch(epoch)
@@ -485,10 +490,20 @@ def main_worker(gpu, ngpus_per_node, args):
                                   'optimizer': optimizer.state_dict()}
                     model_save_name = 'model-{}'.format(global_step)
                     torch.save(checkpoint, os.path.join(checkpoint_save_folder , model_save_name))
+                    checkpoint_save_list.append(os.path.join(checkpoint_save_folder , model_save_name))
                     logging.info("checkpoint saved to : {}".format(os.path.join(checkpoint_save_folder , model_save_name)))
                 time.sleep(0.1)
                 model.eval()
-                online_eval(model, logging, dataloader_eval, gpu, ngpus_per_node, args, False)
+                mirror_rmse = online_eval(model, logging, dataloader_eval, gpu, ngpus_per_node, args, False)
+                mirror_rmse_list.append(mirror_rmse)
+                if check_converge(rmse_list=mirror_rmse_list):
+                    import shutil
+                    final_checkpoint_src = checkpoint_save_list[-3]
+                    final_checkpoint_dst = os.path.join(os.path.split(final_checkpoint_src)[0], "converge_".format(os.path.split(final_checkpoint_src)[-1]))
+                    shutil.copy(final_checkpoint_src, final_checkpoint_dst)
+                    is_converge = True
+                    break
+                train_writer.add_scalar('mirror_rmse', mirror_rmse, global_step)
                 model.train()
                 block_print()
                 set_misc(model)
@@ -496,11 +511,13 @@ def main_worker(gpu, ngpus_per_node, args):
 
             model_just_loaded = False
             global_step += 1
+        if is_converge:
+            break
 
         epoch += 1
 
     ################ saved all result after training ################
-    online_eval(model, logging, dataloader_eval, gpu, ngpus_per_node, args, True)
+    mirror_rmse = online_eval(model, logging, dataloader_eval, gpu, ngpus_per_node, args, True)
 
 
 def main():

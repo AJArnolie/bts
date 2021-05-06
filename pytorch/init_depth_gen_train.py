@@ -499,7 +499,7 @@ def main_worker(gpu, ngpus_per_node, args):
                 if check_converge(rmse_list=mirror_rmse_list):
                     import shutil
                     final_checkpoint_src = checkpoint_save_list[-3]
-                    final_checkpoint_dst = os.path.join(os.path.split(final_checkpoint_src)[0], "converge_".format(os.path.split(final_checkpoint_src)[-1]))
+                    final_checkpoint_dst = os.path.join(os.path.split(final_checkpoint_src)[0], "converge_{}".format(os.path.split(final_checkpoint_src)[-1]))
                     shutil.copy(final_checkpoint_src, final_checkpoint_dst)
                     is_converge = True
                     break

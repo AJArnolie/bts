@@ -420,7 +420,7 @@ def main_worker(gpu, ngpus_per_node, args):
     steps_per_epoch = len(dataloader.data)
     num_total_steps = args.num_epochs * steps_per_epoch
     epoch = global_step // steps_per_epoch
-    mirror_rmse_list = []
+    mirror_score_list = []
     checkpoint_save_list = []
     is_converge = False
     while epoch < args.num_epochs:
@@ -495,8 +495,8 @@ def main_worker(gpu, ngpus_per_node, args):
                 time.sleep(0.1)
                 model.eval()
                 mirror_rmse = online_eval(model, logging, dataloader_eval, gpu, ngpus_per_node, args, False)
-                mirror_rmse_list.append(mirror_rmse)
-                if check_converge(rmse_list=mirror_rmse_list):
+                mirror_score_list.append(mirror_rmse)
+                if check_converge(score_list=mirror_score_list):
                     import shutil
                     final_checkpoint_src = checkpoint_save_list[-3]
                     final_checkpoint_dst = os.path.join(os.path.split(final_checkpoint_src)[0], "converge_{}".format(os.path.split(final_checkpoint_src)[-1]))

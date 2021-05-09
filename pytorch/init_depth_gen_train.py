@@ -36,7 +36,6 @@ from tensorboardX import SummaryWriter
 import matplotlib
 import matplotlib.cm
 import threading
-from tqdm import tqdm
 
 from bts import BtsModel
 from bts_dataloader import *
@@ -253,7 +252,7 @@ def set_misc(model):
 def online_eval(model, logger, dataloader_eval, gpu, ngpus, args, final_result):
 
     mirror3d_eval = Mirror3d_eval(args.refined_depth, logger=logger,Input_tag="RGB", method_tag="BTS")
-    for _, eval_sample_batched in enumerate(tqdm(dataloader_eval.data)):
+    for _, eval_sample_batched in enumerate(dataloader_eval.data):
         with torch.no_grad():
             image = torch.autograd.Variable(eval_sample_batched['image'].cuda(gpu, non_blocking=True))
             focal = torch.autograd.Variable(eval_sample_batched['focal'].cuda(gpu, non_blocking=True))

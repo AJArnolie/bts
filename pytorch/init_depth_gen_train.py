@@ -252,7 +252,7 @@ def set_misc(model):
 
 def online_eval(model, logger, dataloader_eval, gpu, ngpus, args, final_result):
 
-    mirror3d_eval = Mirror3d_eval(args.refined_depth, logger=logger,Input_tag="RGB", method_tag="BTS")
+    mirror3d_eval = Mirror3d_eval(args.refined_depth, logger=logger,Input_tag="RGB", method_tag="BTS",dataset_root=args.coco_val_root)
     for _, eval_sample_batched in enumerate(tqdm(dataloader_eval.data)):
         with torch.no_grad():
             image = torch.autograd.Variable(eval_sample_batched['image'].cuda(gpu, non_blocking=True))
@@ -295,11 +295,12 @@ def online_eval(model, logger, dataloader_eval, gpu, ngpus, args, final_result):
                     eval_mask[45:471, 41:601] = 1
 
             valid_mask = np.logical_and(valid_mask, eval_mask)
-
-        mirror3d_eval.compute_and_update_mirror3D_metrics(pred_depth, args.depth_shift, eval_sample_batched["image_path"][0])
+        color_img_path = eval_sample_batched["image_path"][0]
+        refD_gt_depth_path = eval_sample_batched["gt_depth_path"][0]
+        mirror3d_eval.compute_and_update_mirror3D_metrics(pred_depth, args.depth_shift, color_img_path, eval_sample_batched['rawD'][0], refD_gt_depth_path, eval_sample_batched['mirror_instance_mask_path'][0])
 
         if final_result:
-            mirror3d_eval.save_result(args.log_directory, pred_depth, args.depth_shift, eval_sample_batched["image_path"][0])
+            mirror3d_eval.save_result(args.log_directory, pred_depth, args.depth_shift, color_img_path, eval_sample_batched['rawD'][0], refD_gt_depth_path, eval_sample_batched['mirror_instance_mask_path'][0])
 
 
     if not args.multiprocessing_distributed or gpu == 0:
@@ -496,7 +497,7 @@ def main_worker(gpu, ngpus_per_node, args):
                 model.eval()
                 mirror_rmse = online_eval(model, logging, dataloader_eval, gpu, ngpus_per_node, args, False)
                 mirror_rmse_list.append(mirror_rmse)
-                if check_converge(rmse_list=mirror_rmse_list):
+                if check_converge(score_list=mirror_rmse_list):
                     import shutil
                     final_checkpoint_src = checkpoint_save_list[-3]
                     final_checkpoint_dst = os.path.join(os.path.split(final_checkpoint_src)[0], "converge_{}".format(os.path.split(final_checkpoint_src)[-1]))

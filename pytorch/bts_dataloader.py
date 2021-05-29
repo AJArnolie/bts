@@ -102,14 +102,18 @@ class DataLoadPreprocess(Dataset):
                 for one_info in input_images: 
                     if args.refined_depth:
                         if args.mesh_depth: # mesh refine
-                            self.filepaths.append([os.path.join(root_paths[dataset_index], one_info["img_path"]), os.path.join(root_paths[dataset_index], one_info["mesh_refined_path"])])
+                            self.filepaths.append([os.path.join(root_paths[dataset_index], one_info["mirror_color_image_path"]), os.path.join(root_paths[dataset_index], one_info["refined_meshD_path"]), \
+                                                   os.path.join(root_paths[dataset_index], one_info["raw_meshD_path"]), os.path.join(root_paths[dataset_index], one_info["mirror_instance_mask_path"])])
                         else:  # hole refine
-                            self.filepaths.append([os.path.join(root_paths[dataset_index], one_info["img_path"]), os.path.join(root_paths[dataset_index], one_info["hole_refined_path"])])
+                            self.filepaths.append([os.path.join(root_paths[dataset_index], one_info["mirror_color_image_path"]), os.path.join(root_paths[dataset_index], one_info["refined_sensorD_path"]),
+                                                    os.path.join(root_paths[dataset_index], one_info["raw_sensorD_path"]), os.path.join(root_paths[dataset_index], one_info["mirror_instance_mask_path"])])
                     else:
                         if args.mesh_depth: # mesh raw
-                            self.filepaths.append([os.path.join(root_paths[dataset_index], one_info["img_path"]), os.path.join(root_paths[dataset_index], one_info["mesh_raw_path"])])
+                            self.filepaths.append([os.path.join(root_paths[dataset_index], one_info["mirror_color_image_path"]), os.path.join(root_paths[dataset_index], one_info["raw_meshD_path"]), \
+                                                   os.path.join(root_paths[dataset_index], one_info["raw_meshD_path"]), os.path.join(root_paths[dataset_index], one_info["mirror_instance_mask_path"])])
                         else:# mesh raw hole raw
-                            self.filepaths.append([os.path.join(root_paths[dataset_index], one_info["img_path"]), os.path.join(root_paths[dataset_index], one_info["hole_raw_path"])])
+                            self.filepaths.append([os.path.join(root_paths[dataset_index], one_info["mirror_color_image_path"]), os.path.join(root_paths[dataset_index], one_info["raw_sensorD_path"]),
+                                                    os.path.join(root_paths[dataset_index], one_info["raw_sensorD_path"]), os.path.join(root_paths[dataset_index], one_info["mirror_instance_mask_path"])])
                     self.focal_lengths.append(int(coco_focal_len[dataset_index]))
 
         else:
@@ -121,15 +125,18 @@ class DataLoadPreprocess(Dataset):
                 for one_info in read_json(one_json)["images"]:
                     if args.refined_depth:
                         if args.mesh_depth: # mesh refine
-                            self.filepaths.append([os.path.join(root_paths[dataset_index], one_info["img_path"]), os.path.join(root_paths[dataset_index], one_info["mesh_refined_path"])])
+                            self.filepaths.append([os.path.join(root_paths[dataset_index], one_info["mirror_color_image_path"]), os.path.join(root_paths[dataset_index], one_info["refined_meshD_path"]), \
+                                                   os.path.join(root_paths[dataset_index], one_info["raw_meshD_path"]), os.path.join(root_paths[dataset_index], one_info["mirror_instance_mask_path"])])
                         else:  # hole refine
-                            self.filepaths.append([os.path.join(root_paths[dataset_index], one_info["img_path"]), os.path.join(root_paths[dataset_index], one_info["hole_refined_path"])])
+                            self.filepaths.append([os.path.join(root_paths[dataset_index], one_info["mirror_color_image_path"]), os.path.join(root_paths[dataset_index], one_info["refined_sensorD_path"]),
+                                                    os.path.join(root_paths[dataset_index], one_info["raw_sensorD_path"]), os.path.join(root_paths[dataset_index], one_info["mirror_instance_mask_path"])])
                     else:
                         if args.mesh_depth: # mesh raw
-                            self.filepaths.append([os.path.join(root_paths[dataset_index], one_info["img_path"]), os.path.join(root_paths[dataset_index], one_info["mesh_raw_path"])])
+                            self.filepaths.append([os.path.join(root_paths[dataset_index], one_info["mirror_color_image_path"]), os.path.join(root_paths[dataset_index], one_info["raw_meshD_path"]), \
+                                                   os.path.join(root_paths[dataset_index], one_info["raw_meshD_path"]), os.path.join(root_paths[dataset_index], one_info["mirror_instance_mask_path"])])
                         else:# mesh raw hole raw
-                            self.filepaths.append([os.path.join(root_paths[dataset_index], one_info["img_path"]), os.path.join(root_paths[dataset_index], one_info["hole_raw_path"])])
-
+                            self.filepaths.append([os.path.join(root_paths[dataset_index], one_info["mirror_color_image_path"]), os.path.join(root_paths[dataset_index], one_info["raw_sensorD_path"]),
+                                                    os.path.join(root_paths[dataset_index], one_info["raw_sensorD_path"]), os.path.join(root_paths[dataset_index], one_info["mirror_instance_mask_path"])])
                     self.focal_lengths.append(int(coco_focal_len[dataset_index]))
 
     
@@ -140,15 +147,13 @@ class DataLoadPreprocess(Dataset):
         
     
     def __getitem__(self, idx):
+        has_valid_depth = True
         sample_path = self.filepaths[idx]
 
         focal = self.focal_lengths[idx]
-
         if self.mode == 'train':
-
             image_path = sample_path[0]
             depth_path = sample_path[1]
-
             image = Image.open(image_path).resize((self.args.input_width,self.args.input_height), Image.NEAREST)
             depth_gt = cv2.imread(depth_path, cv2.IMREAD_ANYDEPTH)
             image = np.asarray(image, dtype=np.float32) / 255.0
@@ -158,7 +163,7 @@ class DataLoadPreprocess(Dataset):
 
             image, depth_gt = self.train_preprocess(image, depth_gt)
             
-            sample = {'image': image, 'depth': depth_gt, 'focal': focal,'image_path':sample_path[0],'gt_depth_path':sample_path[1],'gt_depth_path':sample_path[1]}
+            sample = {'image': image, 'depth': depth_gt, 'focal': focal,'image_path':sample_path[0],'gt_depth_path':sample_path[1],'rawD':sample_path[2], 'mirror_instance_mask_path':sample_path[3]}
         
         else:
 
@@ -198,9 +203,9 @@ class DataLoadPreprocess(Dataset):
                     depth_gt = depth_gt[top_margin:top_margin + 352, left_margin:left_margin + 1216, :]
             
             if self.mode == 'online_eval':
-                sample = {'image': image, 'depth': depth_gt, 'focal': focal, 'has_valid_depth': has_valid_depth, 'image_path':sample_path[0],'gt_depth_path':sample_path[1]}
+                sample = {'image': image, 'has_valid_depth':has_valid_depth, 'depth': depth_gt, 'focal': focal,'image_path':sample_path[0],'gt_depth_path':sample_path[1],'rawD':sample_path[2], 'mirror_instance_mask_path':sample_path[3]}
             else:
-                sample = {'image': image, 'focal': focal,'image_path':sample_path[0], 'gt_depth_path':sample_path[1]}
+                sample = {'image': image, 'has_valid_depth':has_valid_depth, 'focal': focal,'image_path':sample_path[0], 'gt_depth_path':sample_path[1],'rawD':sample_path[2], 'mirror_instance_mask_path':sample_path[3]}
         
         if self.transform:
             sample = self.transform(sample)
@@ -272,15 +277,15 @@ class ToTensor(object):
         image = self.normalize(image)
 
         if self.mode == 'test':
-            return {'image': image, 'focal': focal, 'image_path':sample['image_path'],'gt_depth_path':sample['gt_depth_path']}
+            return {'image': image, 'focal': focal, 'image_path':sample['image_path'],'gt_depth_path':sample['gt_depth_path'],'rawD':sample['rawD'],'mirror_instance_mask_path':sample['mirror_instance_mask_path']}
 
         depth = sample['depth']
         if self.mode == 'train':
             depth = self.to_tensor(depth)
-            return {'image': image, 'depth': depth, 'focal': focal, 'image_path':sample['image_path'],'gt_depth_path':sample['gt_depth_path']}
+            return {'image': image, 'depth': depth, 'focal': focal, 'image_path':sample['image_path'],'gt_depth_path':sample['gt_depth_path'],'rawD':sample['rawD'],'mirror_instance_mask_path':sample['mirror_instance_mask_path']}
         else:
             has_valid_depth = sample['has_valid_depth']
-            return {'image': image, 'depth': depth, 'focal': focal, 'has_valid_depth': has_valid_depth, 'image_path':sample['image_path'],'gt_depth_path':sample['gt_depth_path']}
+            return {'image': image, 'depth': depth, 'focal': focal, 'has_valid_depth': has_valid_depth, 'image_path':sample['image_path'],'gt_depth_path':sample['gt_depth_path'],'rawD':sample['rawD'],'mirror_instance_mask_path':sample['mirror_instance_mask_path']}
     
     def to_tensor(self, pic):
         if not (_is_pil_image(pic) or _is_numpy_image(pic)):

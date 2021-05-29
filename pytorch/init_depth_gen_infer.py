@@ -112,7 +112,7 @@ def test(params):
     logging.info("output folder {}".format(output_folder))
     logging.info("checkpoint {}".format(args.resume_checkpoint_path))
 
-    mirror3d_eval = Mirror3d_eval(args.refined_depth,logger=logging, Input_tag="RGB", method_tag="BTS")
+    mirror3d_eval = Mirror3d_eval(args.refined_depth,logger=logging, Input_tag="RGB", method_tag="BTS",dataset_root=args.coco_val_root)
     with torch.no_grad():
         for i, sample in enumerate(tqdm(dataloader.data)):
 
@@ -123,9 +123,9 @@ def test(params):
             pred_depth = depth_est.cpu().numpy().squeeze()
 
             color_img_path = sample["image_path"][0]
-        
-            mirror3d_eval.compute_and_update_mirror3D_metrics(pred_depth,  args.depth_shift, color_img_path)
-            mirror3d_eval.save_result(output_folder, pred_depth, args.depth_shift, color_img_path)
+            refD_gt_depth_path = sample["gt_depth_path"][0]
+            mirror3d_eval.compute_and_update_mirror3D_metrics(pred_depth,  args.depth_shift, color_img_path, sample['rawD'][0], refD_gt_depth_path, sample['mirror_instance_mask_path'][0])
+            mirror3d_eval.save_result(output_folder, pred_depth, args.depth_shift, color_img_path, sample['rawD'][0], refD_gt_depth_path, sample['mirror_instance_mask_path'][0])
 
     mirror3d_eval.print_mirror3D_score()
 

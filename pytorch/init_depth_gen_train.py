@@ -36,7 +36,6 @@ from tensorboardX import SummaryWriter
 import matplotlib
 import matplotlib.cm
 import threading
-from tqdm import tqdm
 
 from bts import BtsModel
 from bts_dataloader import *
@@ -252,8 +251,13 @@ def set_misc(model):
 
 def online_eval(model, logger, dataloader_eval, gpu, ngpus, args, final_result):
 
+<<<<<<< HEAD
     mirror3d_eval = Mirror3d_eval(args.refined_depth, logger=logger,Input_tag="RGB", method_tag="BTS",dataset_root=args.coco_val_root)
     for _, eval_sample_batched in enumerate(tqdm(dataloader_eval.data)):
+=======
+    mirror3d_eval = Mirror3d_eval(args.refined_depth, logger=logger,Input_tag="RGB", method_tag="BTS")
+    for _, eval_sample_batched in enumerate(dataloader_eval.data):
+>>>>>>> ce46bd8b046d7bc29a1d5ce699a4847f4c006de6
         with torch.no_grad():
             image = torch.autograd.Variable(eval_sample_batched['image'].cuda(gpu, non_blocking=True))
             focal = torch.autograd.Variable(eval_sample_batched['focal'].cuda(gpu, non_blocking=True))
@@ -421,7 +425,7 @@ def main_worker(gpu, ngpus_per_node, args):
     steps_per_epoch = len(dataloader.data)
     num_total_steps = args.num_epochs * steps_per_epoch
     epoch = global_step // steps_per_epoch
-    mirror_rmse_list = []
+    mirror_score_list = []
     checkpoint_save_list = []
     is_converge = False
     while epoch < args.num_epochs:

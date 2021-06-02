@@ -27,7 +27,7 @@ import sys
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
-from utils.mirror3d_metrics import Mirror3d_eval
+from utils.mirror3d_metrics import Mirror3dEval
 
 import errno
 import matplotlib.pyplot as plt
@@ -112,7 +112,7 @@ def test(params):
     logging.info("output folder {}".format(output_folder))
     logging.info("checkpoint {}".format(args.resume_checkpoint_path))
 
-    mirror3d_eval = Mirror3d_eval(args.refined_depth,logger=logging, Input_tag="RGB", method_tag="BTS",dataset_root=args.coco_val_root)
+    mirror3d_eval = Mirror3dEval(args.refined_depth,logger=logging, Input_tag="RGB", method_tag="BTS",dataset_root=args.coco_val_root)
     with torch.no_grad():
         for i, sample in enumerate(tqdm(dataloader.data)):
 

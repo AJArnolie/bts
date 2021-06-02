@@ -39,7 +39,7 @@ import threading
 
 from bts import BtsModel
 from bts_dataloader import *
-from utils.mirror3d_metrics import Mirror3d_eval
+from utils.mirror3d_metrics import Mirror3dEval
 from utils.general_utlis import check_converge
 
 def convert_arg_line_to_args(arg_line):
@@ -251,13 +251,8 @@ def set_misc(model):
 
 def online_eval(model, logger, dataloader_eval, gpu, ngpus, args, final_result):
 
-<<<<<<< HEAD
-    mirror3d_eval = Mirror3d_eval(args.refined_depth, logger=logger,Input_tag="RGB", method_tag="BTS",dataset_root=args.coco_val_root)
+    mirror3d_eval = Mirror3dEval(args.refined_depth, logger=logger,Input_tag="RGB", method_tag="BTS",dataset_root=args.coco_val_root)
     for _, eval_sample_batched in enumerate(tqdm(dataloader_eval.data)):
-=======
-    mirror3d_eval = Mirror3d_eval(args.refined_depth, logger=logger,Input_tag="RGB", method_tag="BTS")
-    for _, eval_sample_batched in enumerate(dataloader_eval.data):
->>>>>>> ce46bd8b046d7bc29a1d5ce699a4847f4c006de6
         with torch.no_grad():
             image = torch.autograd.Variable(eval_sample_batched['image'].cuda(gpu, non_blocking=True))
             focal = torch.autograd.Variable(eval_sample_batched['focal'].cuda(gpu, non_blocking=True))

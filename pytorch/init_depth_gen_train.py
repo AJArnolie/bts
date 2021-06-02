@@ -36,7 +36,7 @@ from tensorboardX import SummaryWriter
 import matplotlib
 import matplotlib.cm
 import threading
-
+from tqdm import tqdm
 from bts import BtsModel
 from bts_dataloader import *
 from utils.mirror3d_metrics import Mirror3dEval
@@ -251,7 +251,7 @@ def set_misc(model):
 
 def online_eval(model, logger, dataloader_eval, gpu, ngpus, args, final_result):
 
-    mirror3d_eval = Mirror3dEval(args.refined_depth, logger=logger,Input_tag="RGB", method_tag="BTS",dataset_root=args.coco_val_root)
+    mirror3d_eval = Mirror3dEval(args.refined_depth, logger=logger,input_tag="RGB", method_tag="BTS",dataset_root=args.coco_val_root)
     for _, eval_sample_batched in enumerate(tqdm(dataloader_eval.data)):
         with torch.no_grad():
             image = torch.autograd.Variable(eval_sample_batched['image'].cuda(gpu, non_blocking=True))
@@ -495,8 +495,8 @@ def main_worker(gpu, ngpus_per_node, args):
                 time.sleep(0.1)
                 model.eval()
                 mirror_rmse = online_eval(model, logging, dataloader_eval, gpu, ngpus_per_node, args, False)
-                mirror_rmse_list.append(mirror_rmse)
-                if check_converge(score_list=mirror_rmse_list):
+                mirror_score_list.append(mirror_rmse)
+                if check_converge(score_list=mirror_score_list):
                     import shutil
                     final_checkpoint_src = checkpoint_save_list[-3]
                     final_checkpoint_dst = os.path.join(os.path.split(final_checkpoint_src)[0], "converge_{}".format(os.path.split(final_checkpoint_src)[-1]))

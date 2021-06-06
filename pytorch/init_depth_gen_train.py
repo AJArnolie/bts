@@ -39,8 +39,8 @@ import threading
 from tqdm import tqdm
 from bts import BtsModel
 from bts_dataloader import *
-from utils.mirror3d_metrics import Mirror3dEval
-from utils.general_utils import check_converge
+from mirror3d.utils.mirror3d_metrics import Mirror3dEval
+from mirror3d.utils.general_utils import check_converge
 
 def convert_arg_line_to_args(arg_line):
     for arg in arg_line.split():

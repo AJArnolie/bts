@@ -27,7 +27,7 @@ import sys
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
-from utils.mirror3d_metrics import Mirror3dEval
+from mirror3d.utils.mirror3d_metrics import Mirror3dEval
 
 import errno
 import matplotlib.pyplot as plt

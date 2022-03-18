@@ -33,26 +33,14 @@ import errno
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
-from bts_dataloader import *
+from custom_dataloader import CustomImgDataset
 sys.path.append('./')
 from bts import BtsModel
 
-def convert_arg_line_to_args(arg_line):
-    for arg in arg_line.split():
-        if not arg.strip():
-            continue
-        yield arg
-
-def get_num_lines(file_path):
-    f = open(file_path, 'r')
-    lines = f.readlines()
-    f.close()
-    return len(lines)
-
 def test(params):
-    """Test function."""
     args.mode = 'test'
-    dataloader = BtsDataLoader(args, 'test')
+    args.output_save_folder = os.path.join(args.coco_val, "BTS_depth")
+    dataset = CustomImgDataset(args.input_height, args.input_width, args.coco_val)
     
     model = BtsModel(params=args)
     model = torch.nn.DataParallel(model)
@@ -62,75 +50,19 @@ def test(params):
     model.eval()
     model.cuda()
 
-    train_info_to_eval = []
-    for one_cal_json in args.coco_val.split(","):
-        one_cal_json = one_cal_json.strip()
-        one_images = read_json(one_cal_json)["images"]
-        train_info_to_eval += one_images
-    num_test_samples = len(train_info_to_eval)
-
-
-    lines = ["None None"] * num_test_samples
-
-    print('now testing {} files with {}'.format(num_test_samples, args.resume_checkpoint_path))
-
-    pred_depths = []
-    pred_8x8s = []
-    pred_4x4s = []
-    pred_2x2s = []
-    pred_1x1s = []
-
-    dataset_name = ""
-    if args.coco_val.find("nyu") > 0:
-        dataset_name = "nyu"
-    elif args.coco_val.find("m3d") > 0:
-        dataset_name = "m3d"
-    elif args.coco_val.find("scannet") > 0:
-        dataset_name = "scannet"
-    else:
-        dataset_name = "custom"
-    tag = ""
-    if args.mesh_depth:
-        tag = "meshD_"
-    else:
-        tag = "holeD_"
-
-    if args.refined_depth:
-        tag += "refinedD"
-    else:
-        tag += "rawD"
-    
-    args.model_name = "bts_{}_{}".format(dataset_name, tag)
-
-
-    time_tag = time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
-    output_folder = os.path.join(args.output_save_folder , "BTS_infer_{}".format(time_tag))
-    os.makedirs(output_folder, exist_ok=True)
-    
-    print('Saving result pngs..')
-
-    log_file_save_path = os.path.join(output_folder, "infer.log")
-    logging.basicConfig(filename=log_file_save_path, filemode="a", level=logging.INFO, format="%(asctime)s %(name)s:%(levelname)s:%(message)s")
-    logging.info("output folder {}".format(output_folder))
-    logging.info("checkpoint {}".format(args.resume_checkpoint_path))
-
-    mirror3d_eval = Mirror3dEval(args.refined_depth,logger=logging, input_tag="RGB", method_tag="BTS",dataset_root=args.coco_val_root)
+    print('now testing {} files with {}'.format(len(dataset), args.resume_checkpoint_path))
+    depth_shift = np.array(args.depth_shift)
     with torch.no_grad():
-        for i, sample in enumerate(tqdm(dataloader.data)):
-
+        for i, sample in enumerate(tqdm(dataset)):
             image = Variable(sample['image'].cuda())
             focal = Variable(sample['focal'].cuda())
             _, _, _, _, depth_est = model(image, focal)
             pred_depth = depth_est.cpu().numpy().squeeze()
-
             color_img_path = sample["image_path"][0]
-            refD_gt_depth_path = sample["gt_depth_path"][0]
-            mirror3d_eval.compute_and_update_mirror3D_metrics(pred_depth,  args.depth_shift, color_img_path, sample['rawD'][0], refD_gt_depth_path, sample['mirror_instance_mask_path'][0])
-            mirror3d_eval.save_result(output_folder, pred_depth, args.depth_shift, color_img_path, sample['rawD'][0], refD_gt_depth_path, sample['mirror_instance_mask_path'][0])
-
-    mirror3d_eval.print_mirror3D_score()
-
-    
+            
+            pred_depth_scaled = (np.array(pred_depth) * depth_shift).astype(np.uint16)
+            depth_np_save_path = args.output_save_folder + "/" + color_img_path.split("/")[-1]
+            cv2.imwrite(depth_np_save_path[:-4] + ".png", pred_depth_scaled, [cv2.IMWRITE_PNG_COMPRESSION, 0])
     return
 
 
@@ -175,4 +107,6 @@ if __name__ == '__main__':
 
     model_dir = os.path.dirname(args.resume_checkpoint_path)
     sys.path.append(model_dir)
+    a = time.time()
     test(args)
+    print("TEST TIME:", time.time() - a)
